@@ -46,5 +46,7 @@ do
 done
 
 # Display search results
-last_loop=$((count-1))
-echo "${rloop[$last_loop]}"
+if [[ $(echo "${rloop[$last]}" | sed -e '/^$/d' | wc -l) -gt 0 ]]
+then
+    echo "${rloop[$last]}"
+fi
