@@ -62,6 +62,10 @@ usage() {
 
     -c      Command to run on the remote servers
 
+    -H      Prefix the remote server name to the beginning of each line. Useful for large returns
+
+    -h      Show this usage
+
 
 Looper Status Explanation:
 [Active Threads/Thread Spawn Number     Success count/Error count/Failed count] Command Status, Servername, Command stdout 
