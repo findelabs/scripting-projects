@@ -256,7 +256,7 @@ ssh_command() {
         # Prepend hostname if using hostname_prefix
         if [[ $hostname_prefix == "true" ]]
         then
-            cargo=$(echo "$cargo" | sed -e "s/^/$HOSTNAME,/")
+            cargo=$(echo "$cargo" | sed -e "s/^/$servername,/")
         fi
 
         if [[ -e $tmpdir ]]
