@@ -27,9 +27,6 @@ out_lock=$tmpdir/outlock
 # Scriptname
 scriptname=$(basename "$0")
 
-# Servername
-servername=$(hostname --short)
-
 # Declare logfile
 logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 
@@ -256,7 +253,7 @@ ssh_command() {
         # Prepend hostname if using hostname_prefix
         if [[ $hostname_prefix == "true" ]]
         then
-            cargo=$(echo; echo "$cargo" | sed -e "s/^/$servername,/")
+            cargo=$(echo; echo "$cargo" | sed -e "s/^/$job_server,/")
         fi
 
         if [[ -e $tmpdir ]]
