@@ -8,7 +8,6 @@ trap kill_script INT TERM
 
 count=0
 parent=$$
-scriptname="$(basename $0)"
 
 # Used for server list
 declare -a server_array
@@ -27,6 +26,9 @@ out_lock=$tmpdir/outlock
 
 # Scriptname
 scriptname=$(basename "$0")
+
+# Servername
+servername=$(hostname --short)
 
 # Declare logfile
 logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
@@ -250,6 +252,13 @@ ssh_command() {
             cargo=$(ssh -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
         fi
         ssh_rc=$?
+
+        # Prepend hostname if using hostname_prefix
+        if [[ $hostname_prefix == "true" ]]
+        then
+            cargo=$(echo "$cargo" | sed -e "s/^/$HOSTNAME,/")
+        fi
+
         if [[ -e $tmpdir ]]
         then
             case $ssh_rc in
@@ -412,7 +421,7 @@ stats() {
 ### GETOPTS ###
 ###############
 
-while getopts "c:t:l:r:psub" opt; do
+while getopts "c:t:l:r:psubhH" opt; do
     case $opt in
         u)
             mode=unattended
@@ -442,6 +451,13 @@ while getopts "c:t:l:r:psub" opt; do
             ;;
         s)
             usesudo=true
+            ;;
+        h)
+            usage
+            exit
+            ;;
+        H)
+            hostname_prefix=true
             ;;
         *)
             echo "invalid option: -$OPTARG"
