@@ -25,8 +25,11 @@ tmpstdin=$tmpdir/tmpstdin
 log_lock=$tmpdir/loglock
 out_lock=$tmpdir/outlock
 
+# Scriptname
+scriptname=$(basename "$0")
+
 # Declare logfile
-logfile=/tmp/${USER}-$0-$(date +%Y-%m-%d.%H-%M-%S).log
+logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 
 #################
 ### FUNCTIONS ###
@@ -210,9 +213,12 @@ store_results () {
     job_server=$3
     job_cargo=$4
 
-    (( flock -x 300
-      echo $job_status $job_number,$job_server,"$job_cargo" >> $logfile
-    ) 300>$log_lock )
+    if [[ -e $logfile ]]
+    then
+        (( flock -x 300
+          echo $job_status $job_number,$job_server,"$job_cargo" >> $logfile
+        ) 300>$log_lock )
+    fi
 }
 
 ssh_command() {
@@ -235,7 +241,7 @@ ssh_command() {
                 then
                     status=FAILED-SCP; echo $job_server >> $failed
                 else
-                    cargo=$(sshpass -p "$mypass" ssh -tt -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command" 2>/dev/null)
+                    cargo=$(sshpass -p "$mypass" ssh -tt -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "shadow_content=\$(</tmp/$shadow_filename) && rm /tmp/$shadow_filename; echo \$shadow_content | openssl enc -base64 -aes-256-cbc -d -k $random_key | sudo -p \"\" -S $command 2>/dev/null")
                 fi
             else
                 cargo=$(sshpass -p "$mypass" ssh -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server $command 2>/dev/null)
@@ -244,18 +250,24 @@ ssh_command() {
             cargo=$(ssh -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
         fi
         ssh_rc=$?
-        case $ssh_rc in
-            0) status=SUCCESS; echo $job_server >> $success;; 
-            1) status=FAILED; echo $job_server >> $failed;; 
-            255) status=FAILED-SSH; echo $job_server >> $errors;; 
-            *) status="FAILED($ssh_rc)"; echo $job_server >> $failed;;
-        esac
+        if [[ -e $tmpdir ]]
+        then
+            case $ssh_rc in
+                0) status=SUCCESS; echo $job_server >> $success;; 
+                1) status=FAILED; echo $job_server >> $failed;; 
+                255) status=FAILED-SSH; echo $job_server >> $errors;; 
+                *) status="FAILED($ssh_rc)"; echo $job_server >> $failed;;
+            esac
+        fi
     else
-        case $ping_rc in 
-            1) status=UNPINGABLE; echo $job_server >> $errors;;
-            2) status=FAILED-DNS; echo $job_server >> $errors;;
-            *) status="PING-ERROR($ping_rc)"; echo $job_server >> $errors;;
-        esac 
+        if [[ -e $tmpdir ]]
+        then
+            case $ping_rc in 
+                1) status=UNPINGABLE; echo $job_server >> $errors;;
+                2) status=FAILED-DNS; echo $job_server >> $errors;;
+                *) status="PING-ERROR($ping_rc)"; echo $job_server >> $errors;;
+            esac 
+        fi
     fi
 
     # Send the ssh results to stdout
@@ -526,7 +538,7 @@ then
     shadow_filename=$(echo $shadow_filepath | awk -F/ '{print $NF}')
 
     # Save sudo password to salted file
-    echo $mypass | openssl enc -aes-256-cbc -salt -out $shadow_filepath -k $random_key
+    echo $mypass | openssl enc -base64 -aes-256-cbc -salt -out $shadow_filepath -k $random_key
 fi
 
 #################
@@ -542,9 +554,12 @@ fi
 wait
 
 # Save last to log
-( flock -x 300
-echo "finished: $(date)" >> $logfile
-) 300>$log_lock
+if [[ -e $logfile ]]
+then
+    ( flock -x 300
+    echo "finished: $(date)" >> $logfile
+    ) 300>$log_lock
+fi
 
 if [[ $mode != "unattended" ]]; then
     stats
