@@ -69,7 +69,7 @@ Looper Status Explanation:
 Example Status:
 [3/85 82/5/0] SUCCESS,testserver, 09:09:54 up 98 days, 11:48,  0 users,  load average: 0.29, 0.23, 0.14
 "
-   
+    clean_up 2
 }
 
 clean_up() {
@@ -386,7 +386,7 @@ first_seed() {
             kill_script
         fi
     else
-       kill_script 
+        kill_script 
     fi
 }
 
@@ -451,7 +451,6 @@ while getopts "c:t:l:r:psubhH" opt; do
             ;;
         h)
             usage
-            exit
             ;;
         H)
             hostname_prefix=true
