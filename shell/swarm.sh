@@ -461,6 +461,7 @@ while getopts "c:t:l:r:psubhH" opt; do
             ;;
         *)
             echo "invalid option: -$OPTARG"
+            usage
             ;;
     esac
 done
