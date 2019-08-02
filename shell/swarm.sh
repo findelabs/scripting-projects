@@ -238,7 +238,7 @@ ssh_command() {
         then
             if [[ $usesudo == "true" ]]
             then
-                sshpass -p "$mypass" scp -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>dev/null
+                sshpass -p "$mypass" scp -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
                 scp_rc=$?
                 if [[ $scp_rc -eq 0 ]]
                 then
