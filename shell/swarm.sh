@@ -268,7 +268,7 @@ ssh_command() {
             case $ssh_rc in
                 0) status=SUCCESS; echo $job_server >> $success;; 
                 1) status=FAILED; echo $job_server >> $failed;; 
-                300) status=FAILED-scp; $job_server >> $failed;;
+                300) status=FAILED-SCP; $job_server >> $failed;;
                 255) status=FAILED-SSH; echo $job_server >> $errors;; 
                 *) status="FAILED($ssh_rc)"; echo $job_server >> $failed;;
             esac
