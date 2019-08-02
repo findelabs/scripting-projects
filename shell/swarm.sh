@@ -42,7 +42,7 @@ kill_script() {
 # Usage
 usage() {
     echo "
-    $0 [-psbu] [-t THREADS] [-l SERVERLIST] [-r FILE] -c COMMAND
+    $0 [-psbuhH] [-t THREADS] [-l SERVERLIST] [-r FILE] -c COMMAND
     
     -p      Ask for user's password, to be used if the remote servers requires a password to login
 
