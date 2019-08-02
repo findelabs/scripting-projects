@@ -496,7 +496,7 @@ then
     clean_up 1
 fi
 
-if [ -t ]
+if [ ! -t 0 ]
 then
     while IFS= read -r line; do
         echo "$line" | awk -F, '{print $1}' >> $tmpstdin
