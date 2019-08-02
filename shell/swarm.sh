@@ -67,7 +67,7 @@ usage() {
     -h      Show this usage
 
 
-Looper Status Explanation:
+Swarm Status Explanation:
 [Active Threads/Thread Spawn Number     Success count/Error count/Failed count] Command Status, Servername, Command stdout 
 
 Example Status:
