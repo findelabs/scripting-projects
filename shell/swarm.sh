@@ -238,13 +238,11 @@ ssh_command() {
         then
             if [[ $usesudo == "true" ]]
             then
-                sshpass -p "$mypass" scp $shadow_filepath $job_server:/tmp
+                sshpass -p "$mypass" scp -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp
                 scp_rc=$?
-                if [[ $scp_rc -gt 0 ]]
+                if [[ $scp_rc -eq 0 ]]
                 then
-                    status=FAILED-SCP; echo $job_server >> $failed
-                else
-                    cargo=$(sshpass -p "$mypass" ssh -tt -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command 2>/dev/null; rc=$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc")
+                    cargo=$(sshpass -p "$mypass" ssh -tt -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
                 fi
             else
                 cargo=$(sshpass -p "$mypass" ssh -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server $command 2>/dev/null)
@@ -252,7 +250,12 @@ ssh_command() {
         else
             cargo=$(ssh -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
         fi
-        ssh_rc=$?
+        if [[ $scp_rc == 0 ]]
+        then
+            ssh_rc=$?
+        else
+            ssh_rc=300
+        fi
 
         # Prepend hostname if using hostname_prefix
         if [[ $hostname_prefix == "true" ]]
@@ -265,6 +268,7 @@ ssh_command() {
             case $ssh_rc in
                 0) status=SUCCESS; echo $job_server >> $success;; 
                 1) status=FAILED; echo $job_server >> $failed;; 
+                300) status=FAILED-scp;
                 255) status=FAILED-SSH; echo $job_server >> $errors;; 
                 *) status="FAILED($ssh_rc)"; echo $job_server >> $failed;;
             esac
