@@ -230,6 +230,7 @@ ssh_command() {
 
     local job_number=$1
     local job_server=${server_array[$1]::-1}
+    local cargo=
 
     ping_rc=$(ping_test $job_server)
     if [[ $ping_rc == 0 ]]
