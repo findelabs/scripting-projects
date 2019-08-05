@@ -252,7 +252,7 @@ ssh_command() {
             cargo=$(ssh -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
         fi
         ssh_rc=$?
-        if [[ $scp_rc != 0 ]]
+        if [[ -n $scp_rc ]] && [[ $scp_rc != 0 ]]
         then
             ssh_rc=300
         fi
