@@ -42,34 +42,34 @@ kill_script() {
 # Usage
 usage() {
     echo "
-$0 [-psbuhH] [-t THREADS] [-l SERVERLIST] [-r FILE] -c COMMAND
+$0 [-psbuhS] [-t THREADS] [-l SERVERLIST] -c COMMAND
     
+    -b      Brief mode: only show the first line of output to stdout, 
+            but save full output to log
+            
+    -c      Command to run on the remote servers
+
+    -h      Show this usage
+
+    -l      Specify the serverlist to run command on
+
     -p      Ask for user's password, to be used if the remote servers requires a password to login
 
     -s      Use sudo to execute the command passed. If -p is used, -s will use that password. If -p
             is not specified, then the script will as for the user's password
 
-    -b      Brief mode: only show the first line of output to stdout, 
-            but save full output to log
-            
+    -S      Show stats at the end of the script
+
+    -t      Threads to create
+
     -u      Unattended mode: Do not show output. Only return the final log location
-
-    -t      Used to specify the number of threads to create
-
-    -l      Specify the serverlist to run command on
-
-    -c      Command to run on the remote servers
-
-    -H      Prefix the remote server name to the beginning of each line. Useful for large returns
-
-    -h      Show this usage
 
 
 Swarm Status Explanation:
-[Active Threads/Thread Spawn Number     Success count/Error count/Failed count] Command Status, Servername, Command stdout 
+Command Status: [Server Hostname] [Active Threads/Thread Spawn Number - Success/Error/Failed count]: Command Stdout 
 
 Example Status:
-[3/85 82/5/0] SUCCESS,testserver, 09:09:54 up 98 days, 11:48,  0 users,  load average: 0.29, 0.23, 0.14
+ok: [testserver] [3/85 82/5/0]: 09:09:54 up 98 days, 11:48,  0 users,  load average: 0.29, 0.23, 0.14
 "
     clean_up 2
 }
@@ -142,9 +142,10 @@ stdout_log() {
     # Send ssh cargo to stdout
     
     local job_status=$1
-    local job_number=$2
-    local job_server=$3
-    local job_cargo=$4
+    local job_error=$2
+    local job_number=$3
+    local job_server=$4
+    local job_cargo=$5
 
     if [[ $mode != "unattended" ]]
     then
@@ -170,35 +171,35 @@ stdout_log() {
         if [[ $count == 0 ]]
         then
             # Display the whole result for first round
-            echo [$active/$job_number $success_count/$error_count/$fail_count] $job_status,$job_server,"$job_cargo"
+            echo $job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error: "$job_cargo"
         elif [[ $mode == "brief" ]]
         then
             # Only display the first line of ssh cargo
-            if [[ $job_status == "SUCCESS" ]]
+            if [[ $job_status == "ok" ]]
             then
                 # echo with green is job succeeded
-                echo -e "\e[32m""[$active/$job_number $success_count/$error_count/$fail_count] $job_status,$job_server,""\e[0m${job_cargo%%$'\n'*}"
-            elif [[ $job_status == "FAILED" ]]
+                echo -e "\e[32m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m${job_cargo%%$'\n'*}"
+            elif [[ $job_error == "FAILED" ]]
             then
                 # echo with red if job failed
-                echo -e "\e[91m""[$active/$job_number $success_count/$error_count/$fail_count] $job_status,$job_server,""\e[0m${job_cargo%%$'\n'*}"
+                echo -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m${job_cargo%%$'\n'*}"
             else
                 # echo with yellow if job error'd
-                echo -e "\e[93m""[$active/$job_number $success_count/$error_count/$fail_count] $job_status,$job_server,""\e[0m${job_cargo%%$'\n'*}"
+                echo -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m${job_cargo%%$'\n'*}"
             fi
         elif [[ $mode != "unattended" ]]
         then
-            if [[ $job_status == "SUCCESS" ]]
+            if [[ $job_status == "ok" ]]
             then
                 # echo with green is job succeeded
-                echo -e "\e[32m""[$active/$job_number $success_count/$error_count/$fail_count] $job_status,$job_server,""\e[0m$job_cargo"
-            elif [[ $job_status == "FAILED" ]]
+                echo -e "\e[32m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m$job_cargo"
+            elif [[ $job_error == "FAILED" ]]
             then
                 # echo with red if job failed
-                echo -e "\e[91m""[$active/$job_number $success_count/$error_count/$fail_count] $job_status,$job_server,""\e[0m$job_cargo"
+                echo -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m$job_cargo"
             else
                 # echo with yellow if job error'd
-                echo -e "\e[93m""[$active/$job_number $success_count/$error_count/$fail_count] $job_status,$job_server,""\e[0m$job_cargo"
+                echo -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m$job_cargo"
             fi
                 
         fi 
@@ -210,14 +211,15 @@ store_results () {
     # Save ssh cargo to the log
 
     job_status=$1
-    job_number=$2
-    job_server=$3
-    job_cargo=$4
+    job_error=$2
+    job_number=$3
+    job_server=$4
+    job_cargo=$5
 
     if [[ -e $logfile ]]
     then
         (( flock -x 300
-          echo $job_status $job_number,$job_server,"$job_cargo" >> $logfile
+          echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
         ) 300>$log_lock )
     fi
 }
@@ -255,8 +257,8 @@ ssh_command() {
             ssh_rc=300
         fi
 
-        # Prepend hostname if using hostname_prefix
-        if [[ $hostname_prefix == "true" ]]
+        # Prepend hostname if ssh command output is more than one line
+        if [[ $(echo "$cargo" | wc -l) -gt 1 ]]
         then
             cargo=$(echo; echo "$cargo" | sed -e "s/^/$job_server,/")
         fi
@@ -264,29 +266,29 @@ ssh_command() {
         if [[ -e $tmpdir ]]
         then
             case $ssh_rc in
-                0) status=SUCCESS; echo $job_server >> $success;; 
-                1) status=FAILED; echo $job_server >> $failed;; 
-                300) status=FAILED-SCP; echo $job_server >> $failed;;
-                255) status=FAILED-SSH; echo $job_server >> $errors;; 
-                *) status="FAILED($ssh_rc)"; echo $job_server >> $failed;;
+                0) status=ok;      error=SUCCESS;         echo $job_server >> $success;; 
+                1) status=fail;    error=FAILED;            echo $job_server >> $failed;; 
+                300) status=error; error=FAILED-SCP;        echo $job_server >> $failed;;
+                255) status=error; error=FAILED-SSH;        echo $job_server >> $errors;; 
+                *) status=error;   error="failed($ssh_rc)"; echo $job_server >> $failed;;
             esac
         fi
     else
         if [[ -e $tmpdir ]]
         then
             case $ping_rc in 
-                1) status=UNPINGABLE; echo $job_server >> $errors;;
-                2) status=FAILED-DNS; echo $job_server >> $errors;;
-                *) status="PING-ERROR($ping_rc)"; echo $job_server >> $errors;;
+                1) status=error; error=UNPINGABLE;              echo $job_server >> $errors;;
+                2) status=error; error=FAILED-DNS;              echo $job_server >> $errors;;
+                *) status=error; error="FAILED-PING($ping_rc)"; echo $job_server >> $errors;;
             esac 
         fi
     fi
 
     # Send the ssh results to stdout
-    stdout_log "$status" "$job_number" "$job_server" "$cargo" 
+    stdout_log "$status" "$error" "$job_number" "$job_server" "$cargo" 
 
     # Send the ssh results to the log
-    store_results $status $job_number $job_server "$cargo" 
+    store_results $status $error $job_number $job_server "$cargo" 
 
     if [[ $job_number == 0 ]]; then
         ((count++))
@@ -301,44 +303,10 @@ rsync_data() {
 }
 
 seed() {
-
     # Start ssh process on server
-
+    # This is where any actions right before the command is ran would take place
     local job_server=${server_array[$1]::-1}
-
-    ping_rc=$(ping_test $job_server)
-    if [[ $ping_rc == 1 ]]
-    then
-        status=UNPINGABLE
-        echo $job_server >> $errors
-        stdout_log "$status" "$count" "$job_server" 
-        store_results "$status" "$count" "$job_server" 
-    elif [[ $ping_rc == 2 ]]
-    then
-        status=FAILED-DNS
-        echo $job_server >> $errors
-        stdout_log "$status" "$count" "$job_server"
-        store_results "$status" "$count" "$job_server"
-    elif [[ $ping_rc ]]
-    then
-    # Again, a placeholder var. Eventually rsync and ssh should be interchangable
-    #    rsync_rc=$(rsync_data $1) 
-        rsync_rc=0
-        if [[ $rsync_rc == 1 ]]
-        then
-            status=FAILED-RSYNC
-            echo $job_server >> $errors
-        elif [[ $rsync_rc == 0 ]]
-        then
-            ssh_command $1
-        else
-            status=RSYNC-ERROR
-            echo $job_server >> $errors
-        fi
-    else
-        echo "Experienced error pinging $job_server"
-        echo $job_server >> $errors
-    fi
+    ssh_command $1
 }
 
 spawn_seeds() {
@@ -411,11 +379,11 @@ stats() {
     fi
     echo
     echo "Ran on $total servers in $deltatime seconds, average of $average hosts/second"
-    echo "Un-SSH-able count = $(grep -c 'FAILED-SSH ' $logfile)"
-    echo "Unpingable count = $(grep -c 'UNPINGABLE ' $logfile)"
-    echo "DNS Failure count = $(grep -c 'FAILED-DNS ' $logfile)"
-    echo "Success count = $(grep -c 'SUCCESS ' $logfile)"
-    echo "Failed count = $(grep -c 'FAILED \|FAILED(' $logfile)"
+    echo "Un-SSH-able count = $(grep -c 'FAILED-SSH:' $logfile)"
+    echo "Unpingable count = $(grep -c 'UNPINGABLE:' $logfile)"
+    echo "DNS Failure count = $(grep -c 'FAILED-DNS:' $logfile)"
+    echo "Success count = $(grep -c 'SUCCESS:' $logfile)"
+    echo "Failed count = $(grep -c 'FAILED:\|FAILED(' $logfile)"
     echo
     echo "$logfile"
 }
@@ -424,7 +392,7 @@ stats() {
 ### GETOPTS ###
 ###############
 
-while getopts "c:t:l:r:psubhH" opt; do
+while getopts "c:t:l:r:psubhS" opt; do
     case $opt in
         u)
             mode=unattended
@@ -458,8 +426,8 @@ while getopts "c:t:l:r:psubhH" opt; do
         h)
             usage
             ;;
-        H)
-            hostname_prefix=true
+        S)
+            show_stats=true
             ;;
         *)
             echo "invalid option: -$OPTARG"
@@ -580,9 +548,10 @@ then
     ) 300>$log_lock
 fi
 
-if [[ $mode != "unattended" ]]; then
+if [[ $mode != "unattended" ]] && [[ $show_stats == "true" ]]; then
     stats
 else
+    echo
     echo $logfile
 fi
 clean_up 
