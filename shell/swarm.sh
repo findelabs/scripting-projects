@@ -58,8 +58,6 @@ $0 [-psbuhH] [-t THREADS] [-l SERVERLIST] [-r FILE] -c COMMAND
 
     -l      Specify the serverlist to run command on
 
-    -r      BETA: Copy over a file to the remove servers
-
     -c      Command to run on the remote servers
 
     -H      Prefix the remote server name to the beginning of each line. Useful for large returns
