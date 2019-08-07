@@ -376,7 +376,7 @@ first_seed() {
 
     # This is used to ensure that the command acts as expected
 
-    echo -e "you are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, using \e[32m$threads threads.\e[0m Here are the first 10:"
+    echo -e "You are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, using \e[32m$threads threads.\e[0m Here are the first 10:"
     echo
     for i in $(echo ${server_array[@]:0:10})
     do
@@ -385,7 +385,7 @@ first_seed() {
     echo
     echo -e "We will run \e[32m$command\e[0m on \e[32m$(echo -n ${server_array[0]})\e[0m before the rest of the list to be safe"
     if ask "Are you sure you want to continue?" Y;then
-        echo "Running $command on $serverlist $(date)" >> $logfile
+        echo "Running $command on $serverlist on $(date)" >> $logfile
         seed 0
         if ask "Are you sure you want to continue?" Y
         then
@@ -578,7 +578,7 @@ wait
 if [[ -e $logfile ]]
 then
     ( flock -x 300
-    echo "finished: $(date)" >> $logfile
+    echo "Finished: $(date)" >> $logfile
     ) 300>$log_lock
 fi
 
