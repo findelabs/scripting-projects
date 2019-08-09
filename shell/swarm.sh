@@ -30,6 +30,9 @@ scriptname=$(basename "$0")
 # Declare logfile
 logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 
+# Required programs
+required="flock"
+
 #################
 ### FUNCTIONS ###
 #################
@@ -229,7 +232,7 @@ ssh_command() {
     # Actual command to run commands on servers
 
     local job_number=$1
-    local job_server=${server_array[$1]::-1}
+    local job_server=${server_array[$1]}
     local cargo=
 
     ping_rc=$(ping_test $job_server)
@@ -440,6 +443,17 @@ done
 ### PRE CHECKS ###
 ##################
 
+# Check for required programs
+for program in $required
+do
+    command -v $program >/dev/null 2>&1
+    if [[ $? != 0 ]]
+    then
+        echo "Could not find $program, exiting"
+        exit 1
+    fi 
+done
+
 if [[ -z $command ]]
 then
     echo "Please specify a command with -c"
@@ -485,7 +499,11 @@ if [[ -f $serverlist ]]
 then
     serverlist_filtered=$(cat $serverlist | sed '/^$/d' | grep -v "\[")
     total=$(echo "$serverlist_filtered" | wc -l)
-    mapfile server_array < <(echo "$serverlist_filtered")
+    while read line
+    do
+        server_array[i]="$line"
+        i=$((i + 1))
+    done < <(echo "$serverlist_filtered")
 else
     echo "Could not access $serverlist"
     clean_up 1
