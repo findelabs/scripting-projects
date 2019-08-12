@@ -181,28 +181,28 @@ stdout_log() {
             if [[ $job_status == "ok" ]]
             then
                 # echo with green is job succeeded
-                echo -e "\e[32m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m${job_cargo%%$'\n'*}"
+                echo -n -e "\e[32m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "${job_cargo%%$'\n'*}"
             elif [[ $job_error == "FAILED" ]]
             then
                 # echo with red if job failed
-                echo -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m${job_cargo%%$'\n'*}"
+                echo -n -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "${job_cargo%%$'\n'*}"
             else
                 # echo with yellow if job error'd
-                echo -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m${job_cargo%%$'\n'*}"
+                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m"; echo "${job_cargo%%$'\n'*}"
             fi
         elif [[ $mode != "unattended" ]]
         then
             if [[ $job_status == "ok" ]]
             then
                 # echo with green is job succeeded
-                echo -e "\e[32m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m$job_cargo"
+                echo -n -e "\e[32m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "$job_cargo"
             elif [[ $job_error == "FAILED" ]]
             then
                 # echo with red if job failed
-                echo -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m$job_cargo"
+                echo -n -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "$job_cargo"
             else
                 # echo with yellow if job error'd
-                echo -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m$job_cargo"
+                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m"; echo "$job_cargo"
             fi
                 
         fi 
