@@ -58,6 +58,8 @@ $0 [-psbuhS] [-t THREADS] [-l SERVERLIST] -c COMMAND
 
     -p      Ask for user's password, to be used if the remote servers requires a password to login
 
+    -P      Specify ssh port to use. Default is 22
+
     -s      Use sudo to execute the command passed. If -p is used, -s will use that password. If -p
             is not specified, then the script will as for the user's password
 
@@ -395,7 +397,7 @@ stats() {
 ### GETOPTS ###
 ###############
 
-while getopts "c:t:l:r:psubhS" opt; do
+while getopts "c:t:l:r:pP:subhS" opt; do
     case $opt in
         u)
             mode=unattended
@@ -422,6 +424,9 @@ while getopts "c:t:l:r:psubhS" opt; do
             ;;
         p)
             askpass=true
+            ;;
+        P)
+            sshport=$OPTARG
             ;;
         s)
             usesudo=true
@@ -476,6 +481,13 @@ fi
 if [[ $threads == 0 ]]
 then
     echo "Please specify a number between 1-100"
+    usage
+    clean_up 1
+fi
+
+if [[ -n $sshport ]] && ! [ "$sshport" -eq "$sshport" ] 2>/dev/null
+then
+    echo "Please specify a correct port number. Got $sshport"
     usage
     clean_up 1
 fi
