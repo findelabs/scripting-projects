@@ -471,7 +471,7 @@ then
     threads=10
 fi
 
-if [[ $threads != $threads ]]
+if [[ -n $threads ]] && ! [ $threads -eq $threads ]
 then
     echo "Please specify a number with -t"
     usage
