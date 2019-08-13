@@ -30,6 +30,9 @@ scriptname=$(basename "$0")
 # Declare logfile
 logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 
+# Set default ssh port
+default_sshport=22
+
 # Required programs
 required="flock"
 
@@ -489,7 +492,7 @@ then
         clean_up 1
     fi
 else
-    sshport=22
+    sshport=$default_sshport
 fi
 
 if [ ! -t 0 ]
