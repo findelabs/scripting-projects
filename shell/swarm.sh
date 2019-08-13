@@ -30,6 +30,9 @@ scriptname=$(basename "$0")
 # Declare logfile
 logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 
+# Set default ssh port
+default_sshport=22
+
 # Required programs
 required="flock"
 
@@ -57,6 +60,8 @@ $0 [-psbuhS] [-t THREADS] [-l SERVERLIST] -c COMMAND
     -l      Specify the serverlist to run command on
 
     -p      Ask for user's password, to be used if the remote servers requires a password to login
+
+    -P      Specify ssh port to use. Default is 22
 
     -s      Use sudo to execute the command passed. If -p is used, -s will use that password. If -p
             is not specified, then the script will as for the user's password
@@ -242,17 +247,17 @@ ssh_command() {
         then
             if [[ $usesudo == "true" ]]
             then
-                sshpass -p "$mypass" scp -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
+                sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
                 scp_rc=$?
                 if [[ $scp_rc -eq 0 ]]
                 then
-                    cargo=$(sshpass -p "$mypass" ssh -tt -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
+                    cargo=$(sshpass -p "$mypass" ssh -tt -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
                 fi
             else
-                cargo=$(sshpass -p "$mypass" ssh -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server $command 2>/dev/null)
+                cargo=$(sshpass -p "$mypass" ssh -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server $command 2>/dev/null)
             fi
         else
-            cargo=$(ssh -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
+            cargo=$(ssh -p $sshport -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
         fi
         ssh_rc=$?
         if [[ -n $scp_rc ]] && [[ $scp_rc != 0 ]]
@@ -269,7 +274,7 @@ ssh_command() {
         if [[ -e $tmpdir ]]
         then
             case $ssh_rc in
-                0) status=ok;      error=SUCCESS;         echo $job_server >> $success;; 
+                0) status=ok;      error=SUCCESS;           echo $job_server >> $success;; 
                 1) status=fail;    error=FAILED;            echo $job_server >> $failed;; 
                 300) status=error; error=FAILED-SCP;        echo $job_server >> $failed;;
                 255) status=error; error=FAILED-SSH;        echo $job_server >> $errors;; 
@@ -395,7 +400,7 @@ stats() {
 ### GETOPTS ###
 ###############
 
-while getopts "c:t:l:r:psubhS" opt; do
+while getopts "c:t:l:r:pP:subhS" opt; do
     case $opt in
         u)
             mode=unattended
@@ -407,12 +412,7 @@ while getopts "c:t:l:r:psubhS" opt; do
             command=$OPTARG
             ;;
         t)
-            if [ "$OPTARG" -eq "$OPTARG" ] 2>/dev/null; then
-                threads=$OPTARG
-            else
-                echo "Please specify a number for threads"
-                clean_up 1
-            fi
+            threads=$OPTARG
             ;;
         l)
             serverlist=$OPTARG
@@ -422,6 +422,9 @@ while getopts "c:t:l:r:psubhS" opt; do
             ;;
         p)
             askpass=true
+            ;;
+        P)
+            sshport=$OPTARG
             ;;
         s)
             usesudo=true
@@ -449,7 +452,7 @@ do
     command -v $program >/dev/null 2>&1
     if [[ $? != 0 ]]
     then
-        echo "Could not find $program, exiting"
+        echo "Could not find required $program, exiting"
         exit 1
     fi 
 done
@@ -466,7 +469,7 @@ then
     threads=10
 fi
 
-if [[ $threads != $threads ]]
+if [[ -n $threads ]] && ! [ $threads -eq $threads ] 2>/dev/null
 then
     echo "Please specify a number with -t"
     usage
@@ -478,6 +481,18 @@ then
     echo "Please specify a number between 1-100"
     usage
     clean_up 1
+fi
+
+if [[ -n $sshport ]] 
+then
+    if ! [ "$sshport" -eq "$sshport" ] 2>/dev/null
+    then
+        echo "Please specify a correct port number"
+        usage
+        clean_up 1
+    fi
+else
+    sshport=$default_sshport
 fi
 
 if [ ! -t 0 ]
