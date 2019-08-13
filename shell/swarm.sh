@@ -251,13 +251,13 @@ ssh_command() {
                 scp_rc=$?
                 if [[ $scp_rc -eq 0 ]]
                 then
-                    cargo=$(sshpass -p "$mypass" ssh -tt -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
+                    cargo=$(sshpass -p "$mypass" ssh -tt -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
                 fi
             else
-                cargo=$(sshpass -p "$mypass" ssh -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server $command 2>/dev/null)
+                cargo=$(sshpass -p "$mypass" ssh -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server $command 2>/dev/null)
             fi
         else
-            cargo=$(ssh -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
+            cargo=$(ssh -p $sshport -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
         fi
         ssh_rc=$?
         if [[ -n $scp_rc ]] && [[ $scp_rc != 0 ]]
@@ -274,7 +274,7 @@ ssh_command() {
         if [[ -e $tmpdir ]]
         then
             case $ssh_rc in
-                0) status=ok;      error=SUCCESS;         echo $job_server >> $success;; 
+                0) status=ok;      error=SUCCESS;           echo $job_server >> $success;; 
                 1) status=fail;    error=FAILED;            echo $job_server >> $failed;; 
                 300) status=error; error=FAILED-SCP;        echo $job_server >> $failed;;
                 255) status=error; error=FAILED-SSH;        echo $job_server >> $errors;; 
