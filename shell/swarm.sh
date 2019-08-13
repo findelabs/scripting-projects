@@ -337,7 +337,7 @@ spawn_seeds() {
             current_jobs=$(jobs -p | wc -l)
             if [[ $current_jobs -lt $threads ]]
             then
-                batch_start=$(echo "$threads - $current_jobs | bc")
+                batch_start=$(($threads - $current_jobs))
             else
                 sleep 0.01
             fi
@@ -382,8 +382,8 @@ stats() {
         deltatime=0
         average=$total
     else
-        deltatime=$(echo $endtime - $starttime | bc)
-        average=$(echo "$total / $deltatime" | bc)
+        deltatime=$(($endtime - $starttime))
+        average=$(($total / $deltatime))
     fi
     echo
     echo "Ran on $total servers in $deltatime seconds, average of $average hosts/second"
@@ -513,12 +513,12 @@ fi
 if [[ -f $serverlist ]]
 then
     serverlist_filtered=$(cat $serverlist | sed '/^$/d' | grep -v "\[")
-    total=$(echo "$serverlist_filtered" | wc -l)
     while read line
     do
         server_array[i]="$line"
         i=$((i + 1))
     done < <(echo "$serverlist_filtered")
+    total=${#server_array[@]}
 else
     echo "Could not access $serverlist"
     clean_up 1
