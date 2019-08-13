@@ -48,7 +48,7 @@ kill_script() {
 # Usage
 usage() {
     echo "
-$0 [-psbuhS] [-t THREADS] [-l SERVERLIST] -c COMMAND
+$0 [-psbuhS] [-P PORT] [-t THREADS] [-l SERVERLIST] -c COMMAND
     
     -b      Brief mode: only show the first line of output to stdout, 
             but save full output to log
