@@ -409,12 +409,7 @@ while getopts "c:t:l:r:pP:subhS" opt; do
             command=$OPTARG
             ;;
         t)
-            if [ "$OPTARG" -eq "$OPTARG" ] 2>/dev/null; then
-                threads=$OPTARG
-            else
-                echo "Please specify a number for threads"
-                clean_up 1
-            fi
+            threads=$OPTARG
             ;;
         l)
             serverlist=$OPTARG
@@ -454,7 +449,7 @@ do
     command -v $program >/dev/null 2>&1
     if [[ $? != 0 ]]
     then
-        echo "Could not find $program, exiting"
+        echo "Could not find required $program, exiting"
         exit 1
     fi 
 done
@@ -471,7 +466,7 @@ then
     threads=10
 fi
 
-if [[ -n $threads ]] && ! [ $threads -eq $threads ]
+if [[ -n $threads ]] && ! [ $threads -eq $threads ] 2>/dev/null
 then
     echo "Please specify a number with -t"
     usage
@@ -489,7 +484,7 @@ if [[ -n $sshport ]]
 then
     if ! [ "$sshport" -eq "$sshport" ] 2>/dev/null
     then
-        echo "Please specify a correct port number. Got $sshport"
+        echo "Please specify a correct port number"
         usage
         clean_up 1
     fi
