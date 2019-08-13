@@ -513,12 +513,12 @@ fi
 if [[ -f $serverlist ]]
 then
     serverlist_filtered=$(cat $serverlist | sed '/^$/d' | grep -v "\[")
-    total=$(echo "$serverlist_filtered" | wc -l)
     while read line
     do
         server_array[i]="$line"
         i=$((i + 1))
     done < <(echo "$serverlist_filtered")
+    total=${#server_array[@]}
 else
     echo "Could not access $serverlist"
     clean_up 1
