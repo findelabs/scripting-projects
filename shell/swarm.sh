@@ -34,7 +34,7 @@ logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 default_sshport=22
 
 # Required programs
-required="flock rsync"
+required="flock"
 
 #################
 ### FUNCTIONS ###
@@ -249,12 +249,11 @@ ssh_command() {
         then
             if [[ $usesudo == "true" ]]
             then
-                attempts=0
-                while [ $attempts -lt 2 ]
+                scp_attempts=0
+                while [ $scp_attempts -lt 3 ]
                 do
                     if [[ -n $proxy_host ]]
                     then
-                        #sshpass -p "$mypass" rsync -qz --timeout=5 --port $sshport -e "ssh $extra_ssh_opts" $shadow_filepath $job_server:/tmp 2>/dev/null
                         sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $extra_scp_opts $shadow_filepath $job_server:/tmp 2>/dev/null
                     else
                         sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
@@ -262,7 +261,8 @@ ssh_command() {
                     scp_rc=$?
                     if [[ $scp_rc -gt 0 ]]
                     then
-                        attempts=$(($attempts + 1))
+                        scp_attempts=$(($scp_attempts + 1))
+                        sleep 1
                     else
                         break
                     fi
@@ -367,8 +367,12 @@ spawn_seeds() {
 first_seed() {
 
     # This is used to ensure that the command acts as expected
-
-    echo -e "You are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, using \e[32m$threads threads.\e[0m Here are the first 10:"
+    if [[ -n $proxy_host ]]
+    then
+        echo -e "You are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, with $proxy_hostname as the jump host, and using \e[32m$threads threads.\e[0m Here are the first 10:"
+    else
+        echo -e "You are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, using \e[32m$threads threads.\e[0m Here are the first 10:"
+    fi
     echo
     for i in $(echo ${server_array[@]:0:10})
     do
