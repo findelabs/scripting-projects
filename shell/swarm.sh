@@ -249,19 +249,20 @@ ssh_command() {
         then
             if [[ $usesudo == "true" ]]
             then
-                rsync_attempt=0
-                while [ $rsync_attempt -lt 2 ]
+                attempts=0
+                while [ $attempts -lt 2 ]
                 do
                     if [[ -n $proxy_host ]]
                     then
-                        sshpass -p "$mypass" rsync -qz --timeout=5 --port $sshport -e "ssh $extra_ssh_opts" $shadow_filepath $job_server:/tmp 2>/dev/null
+                        #sshpass -p "$mypass" rsync -qz --timeout=5 --port $sshport -e "ssh $extra_ssh_opts" $shadow_filepath $job_server:/tmp 2>/dev/null
+                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $extra_scp_opts $shadow_filepath $job_server:/tmp 2>/dev/null
                     else
                         sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
                     fi
                     scp_rc=$?
                     if [[ $scp_rc -gt 0 ]]
                     then
-                        rsync_attempt=$(($rsync_attempt + 1))
+                        attempts=$(($attempts + 1))
                     else
                         break
                     fi
@@ -616,7 +617,8 @@ then
         echo "error, connecting to $proxy_hostname on port $proxy_port failed with return code $proxy_ssh_rc"
         clean_up 1
     else
-        extra_ssh_opts="$extra_ssh_opts -J $proxy_hostname:$proxy_port"
+        extra_ssh_opts="-J $proxy_hostname:$proxy_port"
+        extra_scp_opts="-oProxyJump=$proxy_hostname:$proxy_port"
     fi
 fi
 
