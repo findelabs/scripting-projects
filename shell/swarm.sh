@@ -48,7 +48,7 @@ kill_script() {
 # Usage
 usage() {
     echo "
-$0 [-psbuhS] [-P PORT] [-t THREADS] [-l SERVERLIST] -c COMMAND
+$0 [-psbuhS] [-J PROXY_HOSTNAME[:PORT]] [-P PORT] [-t THREADS] [-l SERVERLIST] -c COMMAND
     
     -b      Brief mode: only show the first line of output to stdout, 
             but save full output to log
@@ -56,6 +56,8 @@ $0 [-psbuhS] [-P PORT] [-t THREADS] [-l SERVERLIST] -c COMMAND
     -c      Command to run on the remote servers
 
     -h      Show this usage
+
+    -J      Utilize a proxy (Jump) host to connect to the remote servers. Format would be servername[:port]
 
     -l      Specify the serverlist to run command on
 
@@ -247,17 +249,17 @@ ssh_command() {
         then
             if [[ $usesudo == "true" ]]
             then
-                sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
+                sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $extra_ssh_opts $shadow_filepath $job_server:/tmp 2>/dev/null
                 scp_rc=$?
                 if [[ $scp_rc -eq 0 ]]
                 then
-                    cargo=$(sshpass -p "$mypass" ssh -tt -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
+                    cargo=$(sshpass -p "$mypass" ssh -tt -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_ssh_opts $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
                 fi
             else
-                cargo=$(sshpass -p "$mypass" ssh -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $job_server $command 2>/dev/null)
+                cargo=$(sshpass -p "$mypass" ssh -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_ssh_opts $job_server $command 2>/dev/null)
             fi
         else
-            cargo=$(ssh -p $sshport -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $job_server $command 2>/dev/null)
+            cargo=$(ssh -p $sshport -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $extra_ssh_opts $job_server $command 2>/dev/null)
         fi
         ssh_rc=$?
         if [[ -n $scp_rc ]] && [[ $scp_rc != 0 ]]
@@ -400,7 +402,7 @@ stats() {
 ### GETOPTS ###
 ###############
 
-while getopts "c:t:l:r:pP:subhS" opt; do
+while getopts "c:t:l:r:pP:subhSJ:" opt; do
     case $opt in
         u)
             mode=unattended
@@ -431,6 +433,9 @@ while getopts "c:t:l:r:pP:subhS" opt; do
             ;;
         h)
             usage
+            ;;
+        J)
+            proxy_host=$OPTARG
             ;;
         S)
             show_stats=true
@@ -548,7 +553,6 @@ then
         echo "please enter a password"
         clean_up 1
     fi
-
 fi
 
 if [[ $usesudo == "true" ]]
@@ -559,6 +563,46 @@ then
 
     # Save sudo password to salted file
     echo $mypass | openssl enc -base64 -aes-256-cbc -salt -out $shadow_filepath -k $random_key
+fi
+
+if [[ -n $proxy_host ]]
+then
+    # Split up proxy hostname and proxy port
+    proxy_hostname=$(echo $proxy_host | awk -F: '{print $1}')
+    proxy_port=$(echo $proxy_host | awk -F: '{print $2}')
+
+    # Ping test proxy hostname
+    proxy_hostname_check=$(ping_test $proxy_hostname)
+
+    # Fail if proxy is unpingable or unresolvable
+    if [[ $proxy_hostname_check == 1 ]]
+    then
+        echo "error, $proxy_hostname is not pingable"
+        clean_up 1
+    elif [[ $proxy_hostname_check == 2 ]]
+    then
+        echo "error, could not resolve $proxy_hostname"
+        clean_up 1
+    fi
+
+    # If -w was not passed with a port, just use 22
+    if [[ -z $proxy_port ]]
+    then
+        proxy_port=22
+    fi
+
+    # test ssh connection to specified proxy
+    ssh -p $proxy_port -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $proxy_hostname exit 2>/dev/null
+    proxy_ssh_rc=$?
+
+    # If proxy ssh test failed, then exit
+    if [[ $proxy_ssh_rc -gt 0 ]]
+    then
+        echo "error, connecting to $proxy_hostname on port $proxy_port failed with return code $proxy_ssh_rc"
+        clean_up 1
+    else
+        extra_ssh_opts="$extra_ssh_opts -o \"ProxyCommand ssh -p $proxy_port -W %h:%p $proxy_hostname\"'
+    fi
 fi
 
 #################
