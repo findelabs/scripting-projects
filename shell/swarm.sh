@@ -369,7 +369,7 @@ first_seed() {
     # This is used to ensure that the command acts as expected
     if [[ -n $proxy_host ]]
     then
-        echo -e "You are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, with $proxy_hostname as the jump host, and using \e[32m$threads threads.\e[0m Here are the first 10:"
+        echo -e "You are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, with \e[32m$proxy_hostname\e[0m as the jump host, and using \e[32m$threads threads.\e[0m Here are the first 10:"
     else
         echo -e "You are about to run \e[32m$command\e[0m on \e[32m$total servers\e[0m, using \e[32m$threads threads.\e[0m Here are the first 10:"
     fi
