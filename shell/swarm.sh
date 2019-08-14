@@ -616,7 +616,7 @@ then
         echo "error, connecting to $proxy_hostname on port $proxy_port failed with return code $proxy_ssh_rc"
         clean_up 1
     else
-        extra_ssh_opts="$extra_ssh_opts -J $proxy_hostname:$proxy_hostname"
+        extra_ssh_opts="$extra_ssh_opts -J $proxy_hostname:$proxy_port"
     fi
 fi
 
