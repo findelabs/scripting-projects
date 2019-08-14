@@ -252,7 +252,12 @@ ssh_command() {
                 rsync_attempt=0
                 while [ $rsync_attempt -lt 2 ]
                 do
-                    sshpass -p "$mypass" rsync -qz --timeout=5 --port $sshport -e "ssh $extra_ssh_opts" $shadow_filepath $job_server:/tmp 2>/dev/null
+                    if [[ -n $proxy_host ]]
+                    then
+                        sshpass -p "$mypass" rsync -qz --timeout=5 --port $sshport -e "ssh $extra_ssh_opts" $shadow_filepath $job_server:/tmp 2>/dev/null
+                    else
+                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
+                    fi
                     scp_rc=$?
                     if [[ $scp_rc -gt 0 ]]
                     then
