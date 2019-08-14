@@ -558,33 +558,6 @@ then
     fi
 fi
 
-if [[ $askpass == "true" ]] || [[ $usesudo == "true" ]]
-then
-    if [[ $usesudo == "true" ]]
-    then
-        string="sudo/ssh password"
-    else
-        string="ssh password"
-    fi
-    read -s -p "[$string]: " mypass </dev/tty
-    echo
-    if [[ $mypass == "" ]]
-    then
-        echo "please enter a password"
-        clean_up 1
-    fi
-fi
-
-if [[ $usesudo == "true" ]]
-then
-    random_key=$(openssl rand -base64 32)
-    shadow_filepath=$(mktemp --tmpdir=$tmpdir)
-    shadow_filename=$(echo $shadow_filepath | awk -F/ '{print $NF}')
-
-    # Save sudo password to salted file
-    echo $mypass | openssl enc -base64 -aes-256-cbc -salt -out $shadow_filepath -k $random_key
-fi
-
 if [[ -n $proxy_host ]]
 then
     # Split up proxy hostname and proxy port
@@ -624,6 +597,33 @@ then
         extra_ssh_opts="-J $proxy_hostname:$proxy_port"
         extra_scp_opts="-oProxyJump=$proxy_hostname:$proxy_port"
     fi
+fi
+
+if [[ $askpass == "true" ]] || [[ $usesudo == "true" ]]
+then
+    if [[ $usesudo == "true" ]]
+    then
+        string="sudo/ssh password"
+    else
+        string="ssh password"
+    fi
+    read -s -p "[$string]: " mypass </dev/tty
+    echo
+    if [[ $mypass == "" ]]
+    then
+        echo "please enter a password"
+        clean_up 1
+    fi
+fi
+
+if [[ $usesudo == "true" ]]
+then
+    random_key=$(openssl rand -base64 32)
+    shadow_filepath=$(mktemp --tmpdir=$tmpdir)
+    shadow_filename=$(echo $shadow_filepath | awk -F/ '{print $NF}')
+
+    # Save sudo password to salted file
+    echo $mypass | openssl enc -base64 -aes-256-cbc -salt -out $shadow_filepath -k $random_key
 fi
 
 #################
