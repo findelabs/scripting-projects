@@ -34,7 +34,7 @@ logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 default_sshport=22
 
 # Required programs
-required="flock"
+required="flock rsync"
 
 #################
 ### FUNCTIONS ###
@@ -249,8 +249,18 @@ ssh_command() {
         then
             if [[ $usesudo == "true" ]]
             then
-                sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $extra_ssh_opts $shadow_filepath $job_server:/tmp 2>/dev/null
-                scp_rc=$?
+                rsync_attempt=0
+                while [ $rsync_attempt -lt 2 ]
+                do
+                    sshpass -p "$mypass" rsync -qz --timeout=5 --port $sshport -e "ssh $extra_ssh_opts" $shadow_filepath $job_server:/tmp 2>/dev/null
+                    scp_rc=$?
+                    if [[ $scp_rc -gt 0 ]]
+                    then
+                        rsync_attempt=$(($rsync_attempt + 1))
+                    else
+                        break
+                    fi
+                done
                 if [[ $scp_rc -eq 0 ]]
                 then
                     cargo=$(sshpass -p "$mypass" ssh -tt -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_ssh_opts $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
@@ -601,7 +611,7 @@ then
         echo "error, connecting to $proxy_hostname on port $proxy_port failed with return code $proxy_ssh_rc"
         clean_up 1
     else
-        extra_ssh_opts="$extra_ssh_opts -o \"ProxyCommand ssh -p $proxy_port -W %h:%p $proxy_hostname\""
+        extra_ssh_opts="$extra_ssh_opts -J $proxy_hostname:$proxy_hostname"
     fi
 fi
 
