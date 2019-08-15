@@ -48,7 +48,7 @@ kill_script() {
 # Usage
 usage() {
     echo "
-$0 [-psbuhS] [-J PROXY_HOSTNAME[:PORT]] [-P PORT] [-t THREADS] [-l SERVERLIST] -c COMMAND
+$scriptname [-psbuhS] [-J PROXY_HOSTNAME[:PORT]] [-P PORT] [-t THREADS] [-l SERVERLIST] -c COMMAND
     
     -b      Brief mode: only show the first line of output to stdout, 
             but save full output to log
