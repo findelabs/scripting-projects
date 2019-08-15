@@ -34,7 +34,7 @@ logfile=/tmp/${USER}-$scriptname-$(date +%Y-%m-%d.%H-%M-%S).log
 default_sshport=22
 
 # Required programs
-required="flock"
+required="flock pgrep"
 
 #################
 ### FUNCTIONS ###
@@ -314,7 +314,7 @@ ssh_command() {
     stdout_log "$status" "$error" "$job_number" "$job_server" "$cargo" 
 
     # Send the ssh results to the log
-    store_results $status $error $job_number $job_server "$cargo" 
+    store_results $status $error $job_number $job_server "$cargo" &
 
     if [[ $job_number == 0 ]]; then
         ((count++))
@@ -626,6 +626,22 @@ then
     echo $mypass | openssl enc -base64 -aes-256-cbc -salt -out $shadow_filepath -k $random_key
 fi
 
+get_children() {
+    pids=$(pgrep -P $1)
+    for pid in $pids; do
+        if [[ $pid != "" ]]
+        then
+            echo $pid
+            get_children $pid
+        fi
+    done
+}
+
+get_children_count() {
+    get_children $parent | wc -l
+}
+
+
 #################
 ### MAIN LOOP ###
 #################
@@ -636,7 +652,14 @@ if [[ $mode != "unattended" ]]; then
 else
     spawn_seeds
 fi
+
 wait
+
+# Wait for all child and grandchildren to finish
+until [ $(get_children_count) -le 4 ]
+do
+    sleep 0.1
+done
 
 # Save last to log
 if [[ -e $logfile ]]
