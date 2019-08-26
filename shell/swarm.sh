@@ -379,7 +379,7 @@ first_seed() {
         echo $i
     done
     echo
-    echo -e "We will run \e[32m$command\e[0m on \e[32m$(echo -n ${server_array[0]})\e[0m before the rest of the list to be safe"
+    echo -e "Running on \e[32m$(echo -n ${server_array[0]})\e[0m first, before the rest of the list"
     if ask "Are you sure you want to continue?" Y;then
         echo "Running $command on $serverlist on $(date)" >> $logfile
         seed 0
