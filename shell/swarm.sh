@@ -588,7 +588,7 @@ then
     fi
 
     # test ssh connection to specified proxy
-    ssh -p $proxy_port -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $proxy_hostname exit 2>/dev/null
+    ssh -l $user -p $proxy_port -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $proxy_hostname exit 2>/dev/null
     proxy_ssh_rc=$?
 
     # If proxy ssh test failed, then exit
