@@ -424,7 +424,7 @@ stats() {
 ### GETOPTS ###
 ###############
 
-while getopts "c:t:l:r:pP:sbhSJ:uU" opt; do
+while getopts "c:t:l:r:pP:sbhSJ:u:U" opt; do
     case $opt in
         U)
             mode=unattended
