@@ -230,9 +230,10 @@ store_results () {
 
     if [[ -e $logfile ]]
     then
-        (( flock -x 300
-          echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
-        ) 300>$log_lock )
+        flock $log_lock echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
+#        (( flock -x 300
+#          echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
+#        ) 300>$log_lock )
     fi
 }
 
@@ -652,9 +653,10 @@ wait
 # Save last to log
 if [[ -e $logfile ]]
 then
-    ( flock -x 300
-    echo "Finished: $(date)" >> $logfile
-    ) 300>$log_lock
+    flock $log_lock echo "Finished: $(date)" >> $logfile
+#    ( flock -x 300
+#    echo "Finished: $(date)" >> $logfile
+#    ) 300>$log_lock
 fi
 
 if [[ $mode != "unattended" ]] && [[ $show_stats == "true" ]]; then
