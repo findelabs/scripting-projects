@@ -254,9 +254,9 @@ ssh_command() {
                 do
                     if [[ -n $proxy_host ]]
                     then
-                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $extra_scp_opts $shadow_filepath ${user}@${job_server}:/tmp 2>/dev/null
+                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_scp_opts $shadow_filepath ${user}@${job_server}:/tmp 2>/dev/null
                     else
-                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $shadow_filepath ${user}@${job_server}:/tmp 2>/dev/null
+                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $shadow_filepath ${user}@${job_server}:/tmp 2>/dev/null
                     fi
                     scp_rc=$?
                     if [[ $scp_rc -gt 0 ]]
