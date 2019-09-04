@@ -197,7 +197,7 @@ stdout_log() {
                 echo -n -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "${job_cargo%%$'\n'*}"
             else
                 # echo with yellow if job error'd
-                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m"; echo "${job_cargo%%$'\n'*}"
+                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error ""\e[0m"; echo "${job_cargo%%$'\n'*}"
             fi
         elif [[ $mode != "unattended" ]]
         then
@@ -211,7 +211,7 @@ stdout_log() {
                 echo -n -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "$job_cargo"
             else
                 # echo with yellow if job error'd
-                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m"; echo "$job_cargo"
+                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error ""\e[0m"; echo "$job_cargo"
             fi
                 
         fi 
