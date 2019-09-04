@@ -72,7 +72,9 @@ $scriptname [-psbuhS] [-J PROXY_HOSTNAME[:PORT]] [-P PORT] [-t THREADS] [-l SERV
 
     -t      Threads to create
 
-    -u      Unattended mode: Do not show output. Only return the final log location
+    -u      Use a specific username, instead of current logged-in user
+
+    -U      Unattended mode: Do not show output. Only return the final log location
 
 
 Swarm Status Explanation:
@@ -228,9 +230,7 @@ store_results () {
 
     if [[ -e $logfile ]]
     then
-        (( flock -x 300
-          echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
-        ) 300>$log_lock )
+        flock $log_lock echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
     fi
 }
 
@@ -254,9 +254,9 @@ ssh_command() {
                 do
                     if [[ -n $proxy_host ]]
                     then
-                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $extra_scp_opts $shadow_filepath $job_server:/tmp 2>/dev/null
+                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_scp_opts $shadow_filepath ${user}@${job_server}:/tmp 2>/dev/null
                     else
-                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 $shadow_filepath $job_server:/tmp 2>/dev/null
+                        sshpass -p "$mypass" scp -P $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $shadow_filepath ${user}@${job_server}:/tmp 2>/dev/null
                     fi
                     scp_rc=$?
                     if [[ $scp_rc -gt 0 ]]
@@ -269,13 +269,13 @@ ssh_command() {
                 done
                 if [[ $scp_rc -eq 0 ]]
                 then
-                    cargo=$(sshpass -p "$mypass" ssh -tt -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_ssh_opts $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
+                    cargo=$(sshpass -p "$mypass" ssh -tt -l $user -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_ssh_opts $job_server "openssl enc -base64 -aes-256-cbc -d -in /tmp/$shadow_filename -k $random_key | sudo -p \"\" -S $command; rc=\$?; test -f /tmp/$shadow_filename && rm /tmp/$shadow_filename; exit \$rc" 2>/dev/null)
                 fi
             else
-                cargo=$(sshpass -p "$mypass" ssh -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_ssh_opts $job_server $command 2>/dev/null)
+                cargo=$(sshpass -p "$mypass" ssh -l $user -p $sshport -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no $extra_ssh_opts $job_server $command 2>/dev/null)
             fi
         else
-            cargo=$(ssh -p $sshport -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $extra_ssh_opts $job_server $command 2>/dev/null)
+            cargo=$(ssh -l $user -p $sshport -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $extra_ssh_opts $job_server $command 2>/dev/null)
         fi
         ssh_rc=$?
         if [[ -n $scp_rc ]] && [[ $scp_rc != 0 ]]
@@ -422,9 +422,9 @@ stats() {
 ### GETOPTS ###
 ###############
 
-while getopts "c:t:l:r:pP:subhSJ:" opt; do
+while getopts "c:t:l:r:pP:sbhSJ:u:U" opt; do
     case $opt in
-        u)
+        U)
             mode=unattended
             ;;
         b)
@@ -459,6 +459,9 @@ while getopts "c:t:l:r:pP:subhSJ:" opt; do
             ;;
         S)
             show_stats=true
+            ;;
+        u)
+            user=$OPTARG
             ;;
         *)
             echo "invalid option: -$OPTARG"
@@ -585,7 +588,7 @@ then
     fi
 
     # test ssh connection to specified proxy
-    ssh -p $proxy_port -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $proxy_hostname exit 2>/dev/null
+    ssh -l $user -p $proxy_port -q -o PasswordAuthentication=no -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes $proxy_hostname exit 2>/dev/null
     proxy_ssh_rc=$?
 
     # If proxy ssh test failed, then exit
@@ -597,6 +600,12 @@ then
         extra_ssh_opts="-J $proxy_hostname:$proxy_port"
         extra_scp_opts="-oProxyJump=$proxy_hostname:$proxy_port"
     fi
+fi
+
+# If user did not specify a user with a -u, use the logged in username
+if [[ -z $user ]]
+then
+    user=$USER
 fi
 
 if [[ $askpass == "true" ]] || [[ $usesudo == "true" ]]
@@ -641,9 +650,7 @@ wait
 # Save last to log
 if [[ -e $logfile ]]
 then
-    ( flock -x 300
-    echo "Finished: $(date)" >> $logfile
-    ) 300>$log_lock
+    flock $log_lock echo "Finished: $(date)" >> $logfile
 fi
 
 if [[ $mode != "unattended" ]] && [[ $show_stats == "true" ]]; then
