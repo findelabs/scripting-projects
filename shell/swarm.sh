@@ -412,8 +412,8 @@ stats() {
     echo "Un-SSH-able count = $(grep -c 'FAILED-SSH:' $logfile)"
     echo "Unpingable count = $(grep -c 'UNPINGABLE:' $logfile)"
     echo "DNS Failure count = $(grep -c 'FAILED-DNS:' $logfile)"
-    echo "Success count = $(grep -c 'SUCCESS:' $logfile)"
-    echo "Failed count = $(grep -c 'FAILED:\|FAILED(' $logfile)"
+    echo "Success count = $(grep -c '^ok:' $logfile)"
+    echo "Failed count = $(grep -c 'failed:\|failed(' $logfile)"
     echo
     echo "$logfile"
 }
