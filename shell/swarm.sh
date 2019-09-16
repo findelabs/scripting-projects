@@ -197,7 +197,7 @@ stdout_log() {
                 echo -n -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "${job_cargo%%$'\n'*}"
             else
                 # echo with yellow if job error'd
-                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m"; echo "${job_cargo%%$'\n'*}"
+                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error ""\e[0m"; echo "${job_cargo%%$'\n'*}"
             fi
         elif [[ $mode != "unattended" ]]
         then
@@ -211,7 +211,7 @@ stdout_log() {
                 echo -n -e "\e[91m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]:""\e[0m"; echo "$job_cargo"
             else
                 # echo with yellow if job error'd
-                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error""\e[0m"; echo "$job_cargo"
+                echo -n -e "\e[93m""$job_status: [$job_server] [$active/$job_number $success_count/$error_count/$fail_count]: $job_error ""\e[0m"; echo "$job_cargo"
             fi
                 
         fi 
@@ -412,8 +412,8 @@ stats() {
     echo "Un-SSH-able count = $(grep -c 'FAILED-SSH:' $logfile)"
     echo "Unpingable count = $(grep -c 'UNPINGABLE:' $logfile)"
     echo "DNS Failure count = $(grep -c 'FAILED-DNS:' $logfile)"
-    echo "Success count = $(grep -c 'SUCCESS:' $logfile)"
-    echo "Failed count = $(grep -c 'FAILED:\|FAILED(' $logfile)"
+    echo "Success count = $(grep -c '^ok:' $logfile)"
+    echo "Failed count = $(grep -c 'failed:\|failed(' $logfile)"
     echo
     echo "$logfile"
 }
