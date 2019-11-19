@@ -494,7 +494,7 @@ fi
 
 if [[ -z $threads ]]
 then
-    threads=10
+    threads=30
 fi
 
 if [[ -n $threads ]] && ! [ $threads -eq $threads ] 2>/dev/null
