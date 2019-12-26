@@ -230,7 +230,9 @@ store_results () {
 
     if [[ -e $logfile ]]
     then
-        flock $log_lock echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
+        (( flock -x 300
+            echo $job_status: [$job_server] $job_error:"$job_cargo" >> $logfile
+        ) 300>$log_lock )
     fi
 }
 
